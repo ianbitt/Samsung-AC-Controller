@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import './env'
 import { app, BrowserWindow, safeStorage } from 'electron'
 import { join } from 'node:path'
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'

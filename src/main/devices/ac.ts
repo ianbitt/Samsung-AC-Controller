@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import '../env'
 import { getAccessToken, invalidateAccessToken } from '../auth'
 
 const BASE = 'https://api.smartthings.com/v1/devices'

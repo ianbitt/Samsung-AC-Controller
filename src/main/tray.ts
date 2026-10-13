@@ -14,27 +14,25 @@ import { is } from '@electron-toolkit/utils'
 import { isLoginWindowOpen } from './auth'
 import trayIcon1x from '../../resources/iconTemplate.png?asset'
 import trayIcon2x from '../../resources/iconTemplate@2x.png?asset'
-import trayIconActive1x from '../../resources/iconActive.png?asset'
-import trayIconActive2x from '../../resources/iconActive@2x.png?asset'
 
 const WINDOW_WIDTH = 340
 const WINDOW_HEIGHT = 480
 const REFRESH_CHANNEL = 'tray:refresh'
 const TOGGLE_SHORTCUT = 'Alt+Cmd+A'
-// macOS blurs the popover (handing focus to the menu bar) before the Tray's 'click' handler
-// runs, so a click meant to *close* an open popover would otherwise see it as already-hidden
-// and reopen it. Ignore a click that lands within this long of our own blur-triggered hide.
-const REOPEN_GUARD_MS = 250
+// Measured gap between a tray click and the 'blur' it triggers (whichever fires second) was
+// consistently 15-37ms across two logged test rounds. This is a safety-net cleanup window for
+// the state flags below, not the mechanism that makes them correct — see their comments.
+const FLAG_SAFETY_RESET_MS = 500
 
-function loadTrayIcon(onePath: string, twoPath: string, template: boolean): Electron.NativeImage {
+function loadTrayIcon(): Electron.NativeImage {
   const image = nativeImage.createEmpty()
-  image.addRepresentation({ scaleFactor: 1, buffer: readFileSync(onePath) })
-  image.addRepresentation({ scaleFactor: 2, buffer: readFileSync(twoPath) })
-  image.setTemplateImage(template)
+  image.addRepresentation({ scaleFactor: 1, buffer: readFileSync(trayIcon1x) })
+  image.addRepresentation({ scaleFactor: 2, buffer: readFileSync(trayIcon2x) })
+  image.setTemplateImage(true)
   return image
 }
 
-function createPopoverWindow(onHide: () => void): BrowserWindow {
+function createPopoverWindow(): BrowserWindow {
   const window = new BrowserWindow({
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,
@@ -44,6 +42,10 @@ function createPopoverWindow(onHide: () => void): BrowserWindow {
     movable: false,
     fullscreenable: false,
     skipTaskbar: true,
+    // macOS-only: a non-activating NSPanel. It can become key (so it still receives keyboard/
+    // mouse input) without making our app the frontmost/active application — which is what lets
+    // the previously-focused app (e.g. Terminal) stay visually active while this is open.
+    type: 'panel',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -52,14 +54,6 @@ function createPopoverWindow(onHide: () => void): BrowserWindow {
 
   window.setAlwaysOnTop(true, 'floating')
   window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
-
-  // Dismiss like a menu-bar dropdown: close as soon as it loses focus — unless the SmartThings
-  // login window just stole focus, in which case we want the popover to stay put underneath it.
-  window.on('blur', () => {
-    if (isLoginWindowOpen()) return
-    window.hide()
-  })
-  window.on('hide', onHide)
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     window.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -94,16 +88,46 @@ export function createTrayApp(): { showWindow: () => void } {
   app.dock?.hide()
   Menu.setApplicationMenu(null)
 
-  const normalIcon = loadTrayIcon(trayIcon1x, trayIcon2x, true)
-  const activeIcon = loadTrayIcon(trayIconActive1x, trayIconActive2x, false)
-
-  let lastHiddenAt = 0
-  const window = createPopoverWindow(() => {
-    lastHiddenAt = Date.now()
-    tray.setImage(normalIcon)
-  })
-  const tray = new Tray(normalIcon)
+  const window = createPopoverWindow()
+  const tray = new Tray(loadTrayIcon())
   tray.setToolTip('AC Controller')
+
+  // Two races are possible around the same click (confirmed by logged timestamps across two
+  // separate test rounds — order flips depending on window type/state, so both must be handled):
+  //  (a) blur fires FIRST, ~30ms before the tray click that was meant to close the popover —
+  //      without help, the click then sees an already-hidden window and reopens it.
+  //  (b) the click fires first and closes the popover directly (the `isVisible()` branch in
+  //      toggleWindow below); the resulting blur arrives ~15-27ms AFTER, as pure fallout from
+  //      our own `window.hide()` call. Left unhandled, that fallout blur looks identical to case
+  //      (a) and wrongly swallows the *next* click (the one meant to reopen).
+  // `weCalledHide` tells the blur handler which case it's in: true means "this blur is fallout
+  // from our own hide()," so it should be consumed silently rather than queued as a suppression.
+  let suppressNextClick = false
+  let suppressResetTimer: ReturnType<typeof setTimeout> | null = null
+  let weCalledHide = false
+
+  const armSuppression = (): void => {
+    suppressNextClick = true
+    if (suppressResetTimer) clearTimeout(suppressResetTimer)
+    suppressResetTimer = setTimeout(() => {
+      suppressNextClick = false
+    }, FLAG_SAFETY_RESET_MS)
+  }
+
+  const hideWindow = (): void => {
+    weCalledHide = true
+    window.hide()
+  }
+
+  window.on('blur', () => {
+    if (isLoginWindowOpen()) return
+    if (weCalledHide) {
+      weCalledHide = false
+      return
+    }
+    armSuppression()
+    window.hide()
+  })
 
   const sendRefresh = (): void => {
     window.webContents.send(REFRESH_CHANNEL)
@@ -112,17 +136,19 @@ export function createTrayApp(): { showWindow: () => void } {
   const showWindow = (): void => {
     positionUnderTray(window, tray)
     window.show()
-    window.focus()
-    tray.setImage(activeIcon)
     sendRefresh()
   }
 
   const toggleWindow = (): void => {
-    if (window.isVisible()) {
-      window.hide()
+    if (suppressNextClick) {
+      suppressNextClick = false
+      if (suppressResetTimer) clearTimeout(suppressResetTimer)
       return
     }
-    if (Date.now() - lastHiddenAt < REOPEN_GUARD_MS) return
+    if (window.isVisible()) {
+      hideWindow()
+      return
+    }
     showWindow()
   }
 

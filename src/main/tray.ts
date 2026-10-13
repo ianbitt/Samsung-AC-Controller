@@ -14,21 +14,27 @@ import { is } from '@electron-toolkit/utils'
 import { isLoginWindowOpen } from './auth'
 import trayIcon1x from '../../resources/iconTemplate.png?asset'
 import trayIcon2x from '../../resources/iconTemplate@2x.png?asset'
+import trayIconActive1x from '../../resources/iconActive.png?asset'
+import trayIconActive2x from '../../resources/iconActive@2x.png?asset'
 
 const WINDOW_WIDTH = 340
 const WINDOW_HEIGHT = 480
 const REFRESH_CHANNEL = 'tray:refresh'
 const TOGGLE_SHORTCUT = 'Alt+Cmd+A'
+// macOS blurs the popover (handing focus to the menu bar) before the Tray's 'click' handler
+// runs, so a click meant to *close* an open popover would otherwise see it as already-hidden
+// and reopen it. Ignore a click that lands within this long of our own blur-triggered hide.
+const REOPEN_GUARD_MS = 250
 
-function loadTrayIcon(): Electron.NativeImage {
+function loadTrayIcon(onePath: string, twoPath: string, template: boolean): Electron.NativeImage {
   const image = nativeImage.createEmpty()
-  image.addRepresentation({ scaleFactor: 1, buffer: readFileSync(trayIcon1x) })
-  image.addRepresentation({ scaleFactor: 2, buffer: readFileSync(trayIcon2x) })
-  image.setTemplateImage(true)
+  image.addRepresentation({ scaleFactor: 1, buffer: readFileSync(onePath) })
+  image.addRepresentation({ scaleFactor: 2, buffer: readFileSync(twoPath) })
+  image.setTemplateImage(template)
   return image
 }
 
-function createPopoverWindow(): BrowserWindow {
+function createPopoverWindow(onHide: () => void): BrowserWindow {
   const window = new BrowserWindow({
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,
@@ -53,6 +59,7 @@ function createPopoverWindow(): BrowserWindow {
     if (isLoginWindowOpen()) return
     window.hide()
   })
+  window.on('hide', onHide)
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     window.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -87,8 +94,15 @@ export function createTrayApp(): { showWindow: () => void } {
   app.dock?.hide()
   Menu.setApplicationMenu(null)
 
-  const window = createPopoverWindow()
-  const tray = new Tray(loadTrayIcon())
+  const normalIcon = loadTrayIcon(trayIcon1x, trayIcon2x, true)
+  const activeIcon = loadTrayIcon(trayIconActive1x, trayIconActive2x, false)
+
+  let lastHiddenAt = 0
+  const window = createPopoverWindow(() => {
+    lastHiddenAt = Date.now()
+    tray.setImage(normalIcon)
+  })
+  const tray = new Tray(normalIcon)
   tray.setToolTip('AC Controller')
 
   const sendRefresh = (): void => {
@@ -99,6 +113,7 @@ export function createTrayApp(): { showWindow: () => void } {
     positionUnderTray(window, tray)
     window.show()
     window.focus()
+    tray.setImage(activeIcon)
     sendRefresh()
   }
 
@@ -107,6 +122,7 @@ export function createTrayApp(): { showWindow: () => void } {
       window.hide()
       return
     }
+    if (Date.now() - lastHiddenAt < REOPEN_GUARD_MS) return
     showWindow()
   }
 

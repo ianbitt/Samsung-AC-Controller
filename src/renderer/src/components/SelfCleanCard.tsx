@@ -24,7 +24,17 @@ export function SelfCleanCard({
         <Sparkles size={16} className="text-accent" />
         <div>
           <p className="text-[13px] font-medium text-text">Self-clean</p>
-          {running && <p className="text-[11px] text-text-muted">{progress}% complete</p>}
+          {running && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <div className="h-1 w-20 overflow-hidden rounded-full bg-surface-raised-hover">
+                <div
+                  className="h-full rounded-full bg-accent transition-[width] duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-text-muted">{progress}%</span>
+            </div>
+          )}
         </div>
       </div>
       <Switch.Root

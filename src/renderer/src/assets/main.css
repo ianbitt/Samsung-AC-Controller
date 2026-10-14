@@ -66,3 +66,12 @@ body {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+@keyframes flash-error {
+  0% {
+    box-shadow: 0 0 0 2px var(--color-danger);
+  }
+  100% {
+    box-shadow: 0 0 0 0px transparent;
+  }
+}

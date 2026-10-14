@@ -27,7 +27,12 @@ export function TelemetryRow({
         <span className="text-sm font-semibold text-text">{powerWatts}W</span>
         <span className="text-[10px] text-text-faint">Power</span>
       </Card>
-      <Card className="flex flex-col items-center gap-1 p-3">
+      <Card
+        className={cn(
+          'flex flex-col items-center gap-1 p-3 transition-colors duration-300',
+          filterWarning && 'border-warning/40 bg-warning-soft'
+        )}
+      >
         <Filter size={15} className={cn(filterWarning ? 'text-warning' : 'text-accent')} />
         <span
           className={cn(

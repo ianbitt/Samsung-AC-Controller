@@ -1,3 +1,5 @@
+import { useId } from 'react'
+import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 
 interface Option<T extends string> {
@@ -21,6 +23,8 @@ export function SegmentedControl<T extends string>({
   disabled,
   className
 }: SegmentedControlProps<T>): React.JSX.Element {
+  const layoutId = useId()
+
   return (
     <div
       role="radiogroup"
@@ -38,14 +42,23 @@ export function SegmentedControl<T extends string>({
             disabled={disabled}
             onClick={() => onChange(option.value)}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 rounded-[calc(var(--radius-control)-4px)] px-1 py-1.5 text-[11px] font-medium transition-colors duration-150',
+              'relative flex flex-1 flex-col items-center justify-center gap-1 rounded-[calc(var(--radius-control)-4px)] px-1 py-1.5 text-[11px] font-medium transition-colors duration-150',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               'disabled:opacity-40 disabled:cursor-not-allowed',
-              active ? 'bg-accent text-accent-foreground' : 'text-text-muted hover:text-text'
+              active ? 'text-accent-foreground' : 'text-text-muted hover:text-text'
             )}
           >
-            {option.icon}
-            {option.label}
+            {active && (
+              <motion.div
+                layoutId={`segment-highlight-${layoutId}`}
+                className="absolute inset-0 rounded-[calc(var(--radius-control)-4px)] bg-accent"
+                transition={{ type: 'spring', stiffness: 500, damping: 34 }}
+              />
+            )}
+            <span className="relative z-10 flex flex-col items-center gap-1">
+              {option.icon}
+              {option.label}
+            </span>
           </button>
         )
       })}

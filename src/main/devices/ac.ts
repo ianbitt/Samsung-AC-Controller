@@ -67,6 +67,7 @@ export interface AcStatus {
   autoCleaningMode: AutoCleaningMode
   autoCleaningState: string
   autoCleaningProgress: number
+  displayLight: boolean
 }
 
 async function sendCommand(
@@ -111,7 +112,8 @@ async function getStatus(): Promise<AcStatus> {
     filterStatus: s['custom.dustFilter'].dustFilterStatus.value,
     autoCleaningMode: s['custom.autoCleaningMode'].autoCleaningMode.value,
     autoCleaningState: s['custom.autoCleaningMode'].operatingState.value,
-    autoCleaningProgress: s['custom.autoCleaningMode'].progress.value
+    autoCleaningProgress: s['custom.autoCleaningMode'].progress.value,
+    displayLight: s['samsungce.airConditionerLighting'].lighting.value === 'on'
   }
 }
 
@@ -128,5 +130,15 @@ export const ac = {
     sendCommand('custom.airConditionerOptionalMode', 'setAcOptionalMode', [mode]),
   setAutoCleaningMode: (mode: AutoCleaningMode) =>
     sendCommand('custom.autoCleaningMode', 'setAutoCleaningMode', [mode]),
+  // The standard samsungce.airConditionerLighting capability is in this device's
+  // disabledCapabilities list - its commands are accepted (200/COMPLETED) but silently
+  // ignored. The legacy `execute` capability still works, but its option names are inverted
+  // on this unit: "Light_On" turns the display OFF and "Light_Off" turns it ON. Verified
+  // directly against the device. That inversion is contained entirely here.
+  setDisplayLight: (on: boolean) =>
+    sendCommand('execute', 'execute', [
+      'mode/vs/0',
+      { 'x.com.samsung.da.options': [on ? 'Light_Off' : 'Light_On'] }
+    ]),
   getStatus
 }

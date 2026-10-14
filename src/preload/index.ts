@@ -23,7 +23,8 @@ const api = {
     setOptionalMode: (mode: AcOptionalMode): Promise<void> =>
       ipcRenderer.invoke('ac:setOptionalMode', mode),
     setAutoCleaningMode: (mode: AutoCleaningMode): Promise<void> =>
-      ipcRenderer.invoke('ac:setAutoCleaningMode', mode)
+      ipcRenderer.invoke('ac:setAutoCleaningMode', mode),
+    setDisplayLight: (on: boolean): Promise<void> => ipcRenderer.invoke('ac:setDisplayLight', on)
   },
   tray: {
     // Fired when the popover opens (or "Refresh status" is picked from the tray menu). Returns

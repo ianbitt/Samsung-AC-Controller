@@ -11,6 +11,7 @@ interface PowerHeroProps {
   onTogglePower: () => void
   busy?: boolean
   disabled?: boolean
+  stepDisabled?: boolean
 }
 
 function RoundStepButton({
@@ -50,7 +51,8 @@ export function PowerHero({
   onStep,
   onTogglePower,
   busy,
-  disabled
+  disabled,
+  stepDisabled
 }: PowerHeroProps): React.JSX.Element {
   const on = power === 'on'
 
@@ -63,7 +65,7 @@ export function PowerHero({
           : 'border-border bg-surface-raised'
       )}
     >
-      <div className="flex flex-col items-center gap-0.5 pt-6">
+      <div className="flex flex-col items-center gap-0.5 pt-5">
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.span
             key={target}
@@ -81,12 +83,12 @@ export function PowerHero({
         </span>
       </div>
 
-      <div className="flex items-center justify-center gap-6 py-5">
+      <div className="flex items-center justify-center gap-6 py-4">
         <RoundStepButton
           icon={<Minus size={18} strokeWidth={2.5} />}
           label="Decrease temperature"
           onClick={() => onStep(-1)}
-          disabled={disabled}
+          disabled={disabled || stepDisabled}
         />
 
         <motion.button
@@ -114,13 +116,13 @@ export function PowerHero({
           icon={<Plus size={18} strokeWidth={2.5} />}
           label="Increase temperature"
           onClick={() => onStep(1)}
-          disabled={disabled}
+          disabled={disabled || stepDisabled}
         />
       </div>
 
       <p
         className={cn(
-          'pb-4 text-center text-[11px] font-semibold uppercase tracking-wide transition-colors duration-300',
+          'pb-3 text-center text-[11px] font-semibold uppercase tracking-wide transition-colors duration-300',
           on ? 'text-accent' : 'text-text-faint'
         )}
       >

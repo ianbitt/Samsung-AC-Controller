@@ -53,6 +53,12 @@ function registerIpc(): void {
     }
     return ac.setAutoCleaningMode(mode)
   })
+  ipcMain.handle('ac:setDisplayLight', (_event, on: unknown) => {
+    if (typeof on !== 'boolean') {
+      throw new Error(`Display light must be a boolean, got: ${String(on)}`)
+    }
+    return ac.setDisplayLight(on)
+  })
 }
 
 // Keep a single menu-bar icon even if the app gets launched twice; the second launch just

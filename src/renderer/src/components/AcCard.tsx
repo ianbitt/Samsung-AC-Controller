@@ -14,6 +14,7 @@ import { ModeControl } from './ModeControl'
 import { AirflowCard } from './AirflowCard'
 import { TelemetryRow } from './TelemetryRow'
 import { SelfCleanCard } from './SelfCleanCard'
+import { DisplayLightCard } from './DisplayLightCard'
 import { SectionLabel } from './ui/Card'
 import { cn } from '../lib/cn'
 
@@ -24,7 +25,7 @@ const POLL_MS = 45_000
 const FLASH_MS = 1200
 
 type ConnState = 'connected' | 'disconnected' | 'pending'
-type FlashField = 'power' | 'temperature' | 'mode' | 'airflow' | 'selfclean'
+type FlashField = 'power' | 'temperature' | 'mode' | 'airflow' | 'selfclean' | 'displaylight'
 
 const clamp = (temp: number): number => Math.min(MAX_TEMP, Math.max(MIN_TEMP, temp))
 
@@ -165,6 +166,16 @@ function AcCard(): React.JSX.Element {
     )
   }
 
+  const toggleDisplayLight = (): void => {
+    if (!status) return
+    const next = !status.displayLight
+    applyOptimistic(
+      { displayLight: next },
+      () => window.api.ac.setDisplayLight(next),
+      'displaylight'
+    )
+  }
+
   const disabled = !status
   const isOff = status?.power === 'off'
 
@@ -181,7 +192,7 @@ function AcCard(): React.JSX.Element {
         {!status ? (
           <p className="py-10 text-center text-[12px] text-text-muted">Loading…</p>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <div
               key={
                 flash?.field === 'power' || flash?.field === 'temperature'
@@ -203,13 +214,20 @@ function AcCard(): React.JSX.Element {
                 onTogglePower={togglePower}
                 busy={powerBusy}
                 disabled={disabled}
+                stepDisabled={isOff}
               />
             </div>
 
+            {isOff && (
+              <p className="text-center text-[11px] text-text-faint">
+                Turn on the AC to adjust temperature and fan
+              </p>
+            )}
+
             <div
               className={cn(
-                'flex flex-col gap-4 transition-[opacity,filter] duration-500',
-                isOff && 'opacity-50 saturate-50'
+                'flex flex-col gap-3 transition-opacity duration-500',
+                isOff && 'pointer-events-none opacity-40'
               )}
             >
               <div
@@ -267,6 +285,22 @@ function AcCard(): React.JSX.Element {
                   running={status.autoCleaningState === 'autoClean'}
                   progress={status.autoCleaningProgress}
                   onToggle={toggleAutoCleaning}
+                  disabled={disabled}
+                />
+              </div>
+
+              <div
+                key={
+                  flash?.field === 'displaylight' ? `displaylight-${flash.token}` : 'displaylight'
+                }
+                className={cn(
+                  'rounded-card',
+                  flash?.field === 'displaylight' && 'animate-[flash-error_1.2s_ease-out]'
+                )}
+              >
+                <DisplayLightCard
+                  on={status.displayLight}
+                  onToggle={toggleDisplayLight}
                   disabled={disabled}
                 />
               </div>

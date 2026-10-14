@@ -1,10 +1,11 @@
+import * as Tooltip from '@radix-ui/react-tooltip'
 import AcCard from './components/AcCard'
 
 function App(): React.JSX.Element {
   return (
-    <div className="dashboard">
+    <Tooltip.Provider delayDuration={400}>
       <AcCard />
-    </div>
+    </Tooltip.Provider>
   )
 }
 

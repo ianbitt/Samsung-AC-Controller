@@ -7,26 +7,43 @@ import type {
   AutoCleaningMode,
   FanOscillationMode
 } from '../../../main/devices/ac'
+import { Header } from './Header'
+import { Footer } from './Footer'
+import { TemperatureCard } from './TemperatureCard'
+import { ModeControl } from './ModeControl'
+import { FanSwingRow } from './FanSwingRow'
+import { SpecialModeCard } from './SpecialModeCard'
+import { TelemetryRow } from './TelemetryRow'
+import { SelfCleanCard } from './SelfCleanCard'
+import { SectionLabel } from './ui/Card'
 
 const MIN_TEMP = 16
 const MAX_TEMP = 30
 const CONFIRM_DELAY_MS = 1500
 const POLL_MS = 45_000
 
+type ConnState = 'connected' | 'disconnected' | 'pending'
+
 const clamp = (temp: number): number => Math.min(MAX_TEMP, Math.max(MIN_TEMP, temp))
 
 function AcCard(): React.JSX.Element {
   const [status, setStatus] = useState<AcStatus | null>(null)
+  const [conn, setConn] = useState<ConnState>('pending')
   const [error, setError] = useState<string | null>(null)
+  const [powerBusy, setPowerBusy] = useState(false)
 
   const refresh = useCallback((): Promise<void> => {
     return window.api.ac
       .getStatus()
       .then((s) => {
         setStatus(s)
+        setConn('connected')
         setError(null)
       })
-      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
+      .catch((err) => {
+        setConn('disconnected')
+        setError(err instanceof Error ? err.message : String(err))
+      })
   }, [])
 
   useEffect(() => {
@@ -85,8 +102,9 @@ function AcCard(): React.JSX.Element {
   const togglePower = (): void => {
     if (!status) return
     const turningOn = status.power === 'off'
+    setPowerBusy(true)
     applyOptimistic({ power: turningOn ? 'on' : 'off' }, () =>
-      turningOn ? window.api.ac.on() : window.api.ac.off()
+      (turningOn ? window.api.ac.on() : window.api.ac.off()).finally(() => setPowerBusy(false))
     )
   }
 
@@ -114,114 +132,81 @@ function AcCard(): React.JSX.Element {
     applyOptimistic({ autoCleaningMode: next }, () => window.api.ac.setAutoCleaningMode(next))
   }
 
+  const disabled = !status
+
   return (
-    <section className="card">
-      <header className="card__header">
-        <h2>Air Conditioner</h2>
-        <button
-          className={`power-toggle ${status?.power === 'on' ? 'power-toggle--on' : ''}`}
-          onClick={togglePower}
-          disabled={!status}
-        >
-          {status?.power === 'on' ? 'On' : 'Off'}
-        </button>
-      </header>
+    <>
+      <Header
+        status={conn}
+        power={status?.power ?? null}
+        onTogglePower={togglePower}
+        busy={powerBusy}
+        disabled={disabled}
+      />
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        {error && (
+          <div className="mb-3 rounded-control border border-danger/30 bg-danger-soft px-3 py-2 text-[11px] text-danger">
+            {error}
+          </div>
+        )}
 
-      {error && <p className="card__error">{error}</p>}
+        {!status ? (
+          <p className="py-10 text-center text-[12px] text-text-muted">Loading…</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <TemperatureCard
+              target={status.targetTemperature}
+              current={status.currentTemperature}
+              unit={status.unit}
+              onStep={stepTemp}
+              disabled={disabled}
+            />
 
-      {!status ? (
-        <p className="card__loading">Loading…</p>
-      ) : (
-        <>
-          <div className="temp-control">
-            <button onClick={() => stepTemp(-1)}>−</button>
-            <div className="temp-control__display">
-              <span className="temp-control__target">
-                {status.targetTemperature}°{status.unit}
-              </span>
-              <span className="temp-control__current">
-                now {status.currentTemperature}°{status.unit}
-              </span>
+            <div className="flex flex-col gap-1.5">
+              <SectionLabel>Mode</SectionLabel>
+              <ModeControl
+                value={status.mode as AcMode}
+                options={status.supportedModes}
+                onChange={changeMode}
+                disabled={disabled}
+              />
             </div>
-            <button onClick={() => stepTemp(1)}>+</button>
-          </div>
 
-          <label className="mode-select">
-            Mode
-            <select value={status.mode} onChange={(e) => changeMode(e.target.value as AcMode)}>
-              {status.supportedModes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
-                </option>
-              ))}
-            </select>
-          </label>
+            <FanSwingRow
+              fanMode={status.fanMode}
+              supportedFanModes={status.supportedFanModes}
+              swingMode={status.swingMode}
+              supportedSwingModes={status.supportedSwingModes}
+              onChangeFanMode={changeFanMode}
+              onChangeSwingMode={changeSwingMode}
+              disabled={disabled}
+            />
 
-          <label className="mode-select">
-            Fan speed
-            <select
-              value={status.fanMode}
-              onChange={(e) => changeFanMode(e.target.value as AcFanMode)}
-            >
-              {status.supportedFanModes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="mode-select">
-            Swing
-            <select
-              value={status.swingMode}
-              onChange={(e) => changeSwingMode(e.target.value as FanOscillationMode)}
-            >
-              {status.supportedSwingModes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="mode-select">
-            Special mode
-            <select
+            <SpecialModeCard
               value={status.optionalMode}
-              onChange={(e) => changeOptionalMode(e.target.value as AcOptionalMode)}
-            >
-              {status.supportedOptionalModes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
-                </option>
-              ))}
-            </select>
-          </label>
+              options={status.supportedOptionalModes}
+              onChange={changeOptionalMode}
+              disabled={disabled}
+            />
 
-          <div className="telemetry">
-            <span>Humidity {status.humidity}%</span>
-            <span>{status.powerWatts}W</span>
-            <span className={status.filterStatus !== 'normal' ? 'telemetry__warning' : ''}>
-              Filter: {status.filterStatus}
-            </span>
-          </div>
+            <TelemetryRow
+              humidity={status.humidity}
+              powerWatts={status.powerWatts}
+              filterStatus={status.filterStatus}
+            />
 
-          <div className="card__header">
-            <span>
-              Self-clean
-              {status.autoCleaningState === 'autoClean' && ` — ${status.autoCleaningProgress}%`}
-            </span>
-            <button
-              className={`power-toggle ${status.autoCleaningMode === 'on' ? 'power-toggle--on' : ''}`}
-              onClick={toggleAutoCleaning}
-            >
-              {status.autoCleaningMode === 'on' ? 'On' : 'Off'}
-            </button>
+            <SelfCleanCard
+              on={status.autoCleaningMode === 'on'}
+              running={status.autoCleaningState === 'autoClean'}
+              progress={status.autoCleaningProgress}
+              onToggle={toggleAutoCleaning}
+              disabled={disabled}
+            />
           </div>
-        </>
-      )}
-    </section>
+        )}
+      </div>
+      <Footer status={conn} currentTemperature={status?.currentTemperature} unit={status?.unit} />
+    </>
   )
 }
 

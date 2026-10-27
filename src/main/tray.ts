@@ -18,6 +18,7 @@ import trayIcon2x from '../../resources/iconTemplate@2x.png?asset'
 const WINDOW_WIDTH = 340
 const WINDOW_HEIGHT = 480
 const REFRESH_CHANNEL = 'tray:refresh'
+const OPEN_SETTINGS_CHANNEL = 'tray:openSettings'
 const TOGGLE_SHORTCUT = 'Alt+Cmd+A'
 // Measured gap between a tray click and the 'blur' it triggers (whichever fires second) was
 // consistently 15-37ms across two logged test rounds. This is a safety-net cleanup window for
@@ -139,6 +140,11 @@ export function createTrayApp(): { showWindow: () => void } {
     sendRefresh()
   }
 
+  const openSettings = (): void => {
+    showWindow()
+    window.webContents.send(OPEN_SETTINGS_CHANNEL)
+  }
+
   const toggleWindow = (): void => {
     if (suppressNextClick) {
       suppressNextClick = false
@@ -156,6 +162,8 @@ export function createTrayApp(): { showWindow: () => void } {
     const { openAtLogin } = app.getLoginItemSettings()
     const template: MenuItemConstructorOptions[] = [
       { label: 'Refresh status', click: sendRefresh },
+      { label: 'Settings…', click: openSettings },
+      { type: 'separator' },
       {
         label: 'Open at Login',
         type: 'checkbox',

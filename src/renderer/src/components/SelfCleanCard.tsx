@@ -21,7 +21,7 @@ export function SelfCleanCard({
   return (
     <Card className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2.5">
-        <Sparkles size={16} className="text-accent" />
+        <Sparkles size={16} className="text-white" />
         <div>
           <p className="text-[13px] font-medium text-text">Self-clean</p>
           {running && (

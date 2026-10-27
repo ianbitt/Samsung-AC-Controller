@@ -5,32 +5,38 @@
 @import '@fontsource/inter/700.css';
 
 @theme {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, sans-serif;
 
-  --color-surface: #0b0d10;
-  --color-surface-raised: rgba(255, 255, 255, 0.06);
-  --color-surface-raised-hover: rgba(255, 255, 255, 0.1);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.16);
+  --color-surface: #13223a;
+  --color-surface-raised: rgba(255, 255, 255, 0.14);
+  --color-surface-raised-hover: rgba(255, 255, 255, 0.22);
+  --color-border: rgba(255, 255, 255, 0.18);
+  --color-border-strong: rgba(255, 255, 255, 0.3);
 
-  --color-text: rgba(255, 255, 255, 0.92);
-  --color-text-muted: rgba(255, 255, 255, 0.6);
-  --color-text-faint: rgba(255, 255, 255, 0.38);
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.82);
+  --color-text-faint: rgba(255, 255, 255, 0.62);
 
-  --color-accent: #22d3ee;
-  --color-accent-soft: rgba(34, 211, 238, 0.16);
-  --color-accent-foreground: #042226;
+  --color-accent: #1a7ae0;
+  --color-accent-soft: rgba(255, 255, 255, 0.22);
+  --color-accent-foreground: #1a7ae0;
 
   --color-danger: #ef4444;
-  --color-danger-soft: rgba(239, 68, 68, 0.14);
+  --color-danger-soft: rgba(239, 68, 68, 0.16);
   --color-success: #22c55e;
-  --color-success-soft: rgba(34, 197, 94, 0.14);
+  --color-success-soft: rgba(34, 197, 94, 0.16);
   --color-warning: #f59e0b;
-  --color-warning-soft: rgba(245, 158, 11, 0.14);
+  --color-warning-soft: rgba(245, 158, 11, 0.16);
 
   --radius-card: 16px;
   --radius-control: 12px;
   --radius-tile: 10px;
+}
+
+:root {
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --smooth: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html,
@@ -50,6 +56,110 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* --- Liquid glass surfaces --- */
+
+.glass-surface {
+  background:
+    linear-gradient(rgba(6, 22, 46, 0.32), rgba(6, 22, 46, 0.32)),
+    rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  box-shadow:
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.12),
+    0 8px 24px -4px rgba(6, 20, 45, 0.35);
+  border: none;
+  transition:
+    background 0.2s ease,
+    transform 0.25s var(--spring);
+}
+
+.glass-surface-hover:hover {
+  background:
+    linear-gradient(rgba(6, 22, 46, 0.32), rgba(6, 22, 46, 0.32)),
+    rgba(255, 255, 255, 0.24);
+}
+
+.glass-pill-active {
+  background: rgba(255, 255, 255, 0.92);
+  color: #1a7ae0;
+  box-shadow: 0 12px 24px rgba(14, 65, 130, 0.22);
+}
+
+.mode-tile {
+  transition:
+    transform 0.35s var(--spring),
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mode-tile:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.mode-tile.active {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.power-orb-on {
+  background: #ffffff;
+  color: #2796ff;
+  box-shadow:
+    0 12px 28px rgba(14, 65, 130, 0.28),
+    inset 0 2px 3px rgba(255, 255, 255, 1);
+}
+
+/* --- Atmospheric sky-gradient canvas --- */
+
+.ac-atmosphere {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ac-atmosphere-layer {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.9s var(--smooth);
+}
+
+.ac-atmosphere-on {
+  background: linear-gradient(175deg, #1f7ae0 0%, #3f97f0 42%, #5fadf5 78%, #78bdf8 100%);
+  opacity: 1;
+}
+
+.ac-atmosphere-off {
+  background: linear-gradient(175deg, #1e293b 0%, #334155 55%, #475569 100%);
+  opacity: 0;
+}
+
+.is-off .ac-atmosphere-on {
+  opacity: 0;
+}
+
+.is-off .ac-atmosphere-off {
+  opacity: 1;
+}
+
+.ac-ambient-orb {
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 70%);
+  filter: blur(25px);
+  opacity: 1;
+  transition: opacity 0.9s var(--smooth);
+}
+
+.is-off .ac-ambient-orb {
+  opacity: 0.35;
 }
 
 * {
@@ -73,5 +183,200 @@ body {
   }
   100% {
     box-shadow: 0 0 0 0px transparent;
+  }
+}
+
+.ac-stage {
+  position: relative;
+  width: 260px;
+  height: 185px;
+  margin: 0 auto;
+  perspective: 700px;
+}
+
+.ac-unit-wrapper {
+  position: relative;
+  width: 260px;
+  height: 115.5px; /* Exact 9:4 ratio matching 540x240px PNGs */
+  margin: 0 auto;
+  z-index: 3;
+  filter: drop-shadow(0 12px 20px rgba(12, 58, 110, 0.25));
+}
+
+.ac-png {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.png-closed {
+  z-index: 1;
+}
+
+.png-vent-cavity {
+  z-index: 2;
+  clip-path: inset(66.5% 20.7% 24% 8.9%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ac-stage.is-active .png-vent-cavity {
+  opacity: 1;
+}
+
+.png-tray-blade {
+  z-index: 3;
+  clip-path: inset(70.5% 20.7% 0% 8.9%);
+  transform-origin: 44% 70.5%;
+  opacity: 0;
+  transform: rotateX(-90deg);
+  transition:
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.15s ease;
+}
+
+.ac-stage.is-active .png-tray-blade {
+  opacity: 1;
+  transform: rotateX(0deg);
+}
+
+.airflow-container {
+  position: absolute;
+  top: 90px;
+  left: 8.9%;
+  width: 70.4%;
+  height: 95px;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 0.6s ease 0.15s,
+    transform 0.6s ease 0.15s;
+  pointer-events: none;
+}
+
+.ac-stage.is-active .airflow-container {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.air-cone {
+  position: absolute;
+  top: 0;
+  left: 5%;
+  width: 90%;
+  height: 90px;
+  background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 75%);
+  filter: blur(8px);
+}
+
+.wind-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 80px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85), transparent);
+  border-radius: 50%;
+  filter: blur(0.5px);
+  animation: flowDown 1.8s infinite ease-in-out;
+}
+
+.w1 {
+  left: 12%;
+  animation-delay: 0s;
+}
+.w2 {
+  left: 31%;
+  animation-delay: 0.3s;
+}
+.w3 {
+  left: 50%;
+  animation-delay: 0.15s;
+}
+.w4 {
+  left: 69%;
+  animation-delay: 0.45s;
+}
+.w5 {
+  left: 88%;
+  animation-delay: 0.2s;
+}
+
+@keyframes flowDown {
+  0% {
+    opacity: 0.15;
+    transform: translateY(-4px) scaleY(0.75) rotate(var(--rot, 0deg));
+  }
+  50% {
+    opacity: 0.75;
+    transform: translateY(6px) scaleY(1.08) rotate(var(--rot, 0deg));
+  }
+  100% {
+    opacity: 0.15;
+    transform: translateY(-4px) scaleY(0.75) rotate(var(--rot, 0deg));
+  }
+}
+
+/* --- Mode icon micro-animations, triggered when a mode tile becomes active --- */
+
+.ac-mode-row button.active .icon-auto {
+  animation: pulseSparkle 0.7s var(--spring);
+}
+.ac-mode-row button.active .icon-cool {
+  animation: spinSnowflake 0.75s var(--spring);
+}
+.ac-mode-row button.active .icon-dry {
+  animation: dropBounce 0.65s var(--spring);
+}
+.ac-mode-row button.active .icon-wind {
+  animation: breezeWhoosh 0.65s var(--smooth);
+}
+
+@keyframes pulseSparkle {
+  0% {
+    transform: scale(0.5) rotate(-25deg);
+  }
+  60% {
+    transform: scale(1.25) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+@keyframes spinSnowflake {
+  0% {
+    transform: rotate(0deg) scale(0.6);
+  }
+  100% {
+    transform: rotate(180deg) scale(1);
+  }
+}
+@keyframes dropBounce {
+  0% {
+    transform: translateY(-7px) scale(0.8, 1.2);
+  }
+  50% {
+    transform: translateY(3px) scale(1.15, 0.85);
+  }
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+@keyframes breezeWhoosh {
+  0% {
+    transform: translateX(-8px);
+    opacity: 0.3;
+  }
+  60% {
+    transform: translateX(4px);
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
   }
 }

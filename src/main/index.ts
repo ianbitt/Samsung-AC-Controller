@@ -7,8 +7,11 @@ import {
   isAcFanMode,
   isFanOscillationMode,
   isAcOptionalMode,
-  isAutoCleaningMode
+  isAutoCleaningMode,
+  listAcDevices
 } from './devices/ac'
+import { login, forgetTokens } from './auth'
+import { getConfigState, saveClientCredentials, saveAcId, resetAll } from './config'
 
 const MIN_TEMP = 16
 const MAX_TEMP = 30
@@ -61,6 +64,39 @@ function registerIpc(): void {
   })
 }
 
+function registerConfigIpc(): void {
+  ipcMain.handle('config:getState', () => getConfigState())
+  ipcMain.handle(
+    'config:saveCredentials',
+    async (_event, clientId: unknown, clientSecret: unknown) => {
+      if (typeof clientId !== 'string' || !clientId.trim()) {
+        throw new Error('Client ID is required')
+      }
+      if (typeof clientSecret !== 'string' || !clientSecret.trim()) {
+        throw new Error('Client secret is required')
+      }
+      saveClientCredentials(clientId.trim(), clientSecret.trim())
+      try {
+        await login()
+      } catch (err) {
+        resetAll()
+        throw err
+      }
+    }
+  )
+  ipcMain.handle('config:listDevices', () => listAcDevices())
+  ipcMain.handle('config:selectDevice', (_event, acId: unknown) => {
+    if (typeof acId !== 'string' || !acId) {
+      throw new Error(`Invalid device id: ${String(acId)}`)
+    }
+    saveAcId(acId)
+  })
+  ipcMain.handle('config:reset', () => {
+    resetAll()
+    forgetTokens()
+  })
+}
+
 // Keep a single menu-bar icon even if the app gets launched twice; the second launch just
 // re-shows the existing popover instead of spawning a duplicate tray entry.
 const gotLock = app.requestSingleInstanceLock()
@@ -76,6 +112,7 @@ if (!gotLock) {
     })
 
     registerIpc()
+    registerConfigIpc()
 
     const { showWindow } = createTrayApp()
     app.on('second-instance', () => showWindow())

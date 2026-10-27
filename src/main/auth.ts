@@ -2,10 +2,12 @@ import './env'
 import { app, BrowserWindow, safeStorage } from 'electron'
 import { join } from 'node:path'
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { getClientCredentials } from './config'
 
-const { ST_CLIENT_ID, ST_CLIENT_SECRET } = process.env
-if (!ST_CLIENT_ID || !ST_CLIENT_SECRET) {
-  throw new Error('Missing ST_CLIENT_ID or ST_CLIENT_SECRET in .env')
+function requireCredentials(): { clientId: string; clientSecret: string } {
+  const creds = getClientCredentials()
+  if (!creds) throw new Error('SmartThings credentials are not configured yet')
+  return creds
 }
 
 const TOKEN_URL = 'https://api.smartthings.com/oauth/token'
@@ -51,14 +53,15 @@ function clearTokens(): void {
 }
 
 async function requestTokens(params: Record<string, string>): Promise<Tokens> {
-  const basic = Buffer.from(`${ST_CLIENT_ID}:${ST_CLIENT_SECRET}`).toString('base64')
+  const { clientId, clientSecret } = requireCredentials()
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${basic}`,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams({ client_id: ST_CLIENT_ID!, ...params }),
+    body: new URLSearchParams({ client_id: clientId, ...params }),
     signal: AbortSignal.timeout(5000)
   })
   if (!res.ok) throw new Error(`OAuth ${res.status}: ${await res.text()}`)
@@ -78,6 +81,7 @@ export function isLoginWindowOpen(): boolean {
 }
 
 function getAuthCode(): Promise<string> {
+  const { clientId } = requireCredentials()
   return new Promise((resolve, reject) => {
     loginWindowOpen = true
     const win = new BrowserWindow({ width: 500, height: 700 })
@@ -86,7 +90,7 @@ function getAuthCode(): Promise<string> {
     const url =
       'https://api.smartthings.com/oauth/authorize?' +
       new URLSearchParams({
-        client_id: ST_CLIENT_ID!,
+        client_id: clientId,
         response_type: 'code',
         redirect_uri: REDIRECT,
         scope: 'r:devices:* x:devices:*'
@@ -108,7 +112,7 @@ function getAuthCode(): Promise<string> {
 
 let loggingIn: Promise<Tokens> | null = null
 
-function login(): Promise<Tokens> {
+export function login(): Promise<Tokens> {
   if (!loggingIn) {
     loggingIn = getAuthCode()
       .then((code) =>
@@ -164,4 +168,8 @@ export async function getAccessToken(): Promise<string> {
 
 export function invalidateAccessToken(): void {
   if (cached) cached.expiresAt = 0
+}
+
+export function forgetTokens(): void {
+  clearTokens()
 }

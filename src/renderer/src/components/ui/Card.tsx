@@ -6,7 +6,7 @@ export function Card({
 }: React.HTMLAttributes<HTMLDivElement>): React.JSX.Element {
   return (
     <div
-      className={cn('rounded-card border border-border bg-surface-raised p-4', className)}
+      className={cn('glass-surface rounded-card p-4 transition-colors duration-500', className)}
       {...props}
     />
   )

@@ -32,8 +32,8 @@ export function Dropdown<T extends string>({
           type="button"
           disabled={disabled}
           className={cn(
-            'flex w-full items-center gap-2 rounded-control bg-surface-raised px-3 py-2 text-left text-xs font-medium text-text transition-colors duration-150',
-            'hover:bg-surface-raised-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            'glass-surface glass-surface-hover flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-xs font-medium text-text',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             'disabled:opacity-40 disabled:cursor-not-allowed',
             className
           )}
@@ -47,15 +47,15 @@ export function Dropdown<T extends string>({
         <DropdownMenu.Content
           align="start"
           sideOffset={6}
-          className="z-50 min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-hidden rounded-control border border-border bg-surface p-1 shadow-xl"
+          className="z-50 min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-hidden rounded-control bg-white/85 p-1 shadow-xl backdrop-blur-xl"
         >
           {options.map((option) => (
             <DropdownMenu.Item
               key={option.value}
               onSelect={() => onChange(option.value)}
               className={cn(
-                'flex cursor-pointer items-center gap-2 rounded-[calc(var(--radius-control)-4px)] px-2.5 py-1.5 text-xs font-medium text-text outline-none transition-colors',
-                'data-[highlighted]:bg-surface-raised'
+                'flex cursor-pointer items-center gap-2 rounded-[calc(var(--radius-control)-4px)] px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none transition-colors',
+                'data-[highlighted]:bg-black/5'
               )}
             >
               {option.icon}

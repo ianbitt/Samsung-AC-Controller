@@ -1,10 +1,15 @@
 import '../env'
 import { getAccessToken, invalidateAccessToken } from '../auth'
+import { getAcId } from '../config'
 
 const BASE = 'https://api.smartthings.com/v1/devices'
 const TIMEOUT_MS = 5000
-const { AC_ID } = process.env
-if (!AC_ID) throw new Error('Missing AC_ID in .env')
+
+function requireAcId(): string {
+  const id = getAcId()
+  if (!id) throw new Error('No AC device configured yet')
+  return id
+}
 
 async function authHeaders(): Promise<Record<string, string>> {
   return { Authorization: `Bearer ${await getAccessToken()}`, 'Content-Type': 'application/json' }
@@ -75,7 +80,7 @@ async function sendCommand(
   command: string,
   args: unknown[] = []
 ): Promise<void> {
-  const res = await request(`${BASE}/${AC_ID}/commands`, {
+  const res = await request(`${BASE}/${requireAcId()}/commands`, {
     method: 'POST',
     body: JSON.stringify({
       commands: [{ component: 'main', capability, command, arguments: args }]
@@ -85,7 +90,7 @@ async function sendCommand(
 }
 
 async function getStatus(): Promise<AcStatus> {
-  const res = await request(`${BASE}/${AC_ID}/components/main/status`)
+  const res = await request(`${BASE}/${requireAcId()}/components/main/status`)
   if (!res.ok) throw new Error(`SmartThings ${res.status}: ${await res.text()}`)
   const s = await res.json()
   return {
@@ -115,6 +120,34 @@ async function getStatus(): Promise<AcStatus> {
     autoCleaningProgress: s['custom.autoCleaningMode'].progress.value,
     displayLight: s['samsungce.airConditionerLighting'].lighting.value === 'on'
   }
+}
+
+export interface AcDeviceOption {
+  id: string
+  label: string
+}
+
+interface SmartThingsDevice {
+  deviceId: string
+  label?: string
+  name?: string
+  components?: { capabilities?: { id: string }[] }[]
+}
+
+export async function listAcDevices(): Promise<AcDeviceOption[]> {
+  const res = await request(BASE)
+  if (!res.ok) throw new Error(`SmartThings ${res.status}: ${await res.text()}`)
+  const { items } = (await res.json()) as { items: SmartThingsDevice[] }
+  return items
+    .filter((device) =>
+      device.components?.some((component) =>
+        component.capabilities?.some((cap) => cap.id === 'airConditionerMode')
+      )
+    )
+    .map((device) => ({
+      id: device.deviceId,
+      label: device.label || device.name || device.deviceId
+    }))
 }
 
 export const ac = {

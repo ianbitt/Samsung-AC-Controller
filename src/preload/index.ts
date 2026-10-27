@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type {
+  AcDeviceOption,
   AcFanMode,
   AcMode,
   AcOptionalMode,
@@ -8,6 +9,7 @@ import type {
   AutoCleaningMode,
   FanOscillationMode
 } from '../main/devices/ac'
+import type { ConfigState } from '../main/config'
 
 // Custom APIs for renderer
 const api = {
@@ -26,6 +28,14 @@ const api = {
       ipcRenderer.invoke('ac:setAutoCleaningMode', mode),
     setDisplayLight: (on: boolean): Promise<void> => ipcRenderer.invoke('ac:setDisplayLight', on)
   },
+  config: {
+    getState: (): Promise<ConfigState> => ipcRenderer.invoke('config:getState'),
+    saveCredentials: (clientId: string, clientSecret: string): Promise<void> =>
+      ipcRenderer.invoke('config:saveCredentials', clientId, clientSecret),
+    listDevices: (): Promise<AcDeviceOption[]> => ipcRenderer.invoke('config:listDevices'),
+    selectDevice: (acId: string): Promise<void> => ipcRenderer.invoke('config:selectDevice', acId),
+    reset: (): Promise<void> => ipcRenderer.invoke('config:reset')
+  },
   tray: {
     // Fired when the popover opens (or "Refresh status" is picked from the tray menu). Returns
     // an unsubscribe function so a component can clean up on unmount.
@@ -33,6 +43,12 @@ const api = {
       const listener = (): void => callback()
       ipcRenderer.on('tray:refresh', listener)
       return () => ipcRenderer.removeListener('tray:refresh', listener)
+    },
+    // Fired when "Settings…" is picked from the tray menu, to reopen the setup flow.
+    onOpenSettings: (callback: () => void): (() => void) => {
+      const listener = (): void => callback()
+      ipcRenderer.on('tray:openSettings', listener)
+      return () => ipcRenderer.removeListener('tray:openSettings', listener)
     }
   }
 }

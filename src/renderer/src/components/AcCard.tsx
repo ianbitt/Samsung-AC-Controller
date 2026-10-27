@@ -180,7 +180,18 @@ function AcCard(): React.JSX.Element {
   const isOff = status?.power === 'off'
 
   return (
-    <>
+    <div
+      className={cn(
+        'isolate relative flex min-h-0 flex-1 flex-col overflow-hidden transition-colors duration-700',
+        isOff && 'is-off'
+      )}
+    >
+      <div className="ac-atmosphere -z-10" aria-hidden="true">
+        <div className="ac-atmosphere-layer ac-atmosphere-on" />
+        <div className="ac-atmosphere-layer ac-atmosphere-off" />
+        <div className="ac-ambient-orb" />
+      </div>
+
       <Header status={conn} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {error && (
@@ -309,7 +320,7 @@ function AcCard(): React.JSX.Element {
         )}
       </div>
       <Footer status={conn} currentTemperature={status?.currentTemperature} unit={status?.unit} />
-    </>
+    </div>
   )
 }
 

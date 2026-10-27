@@ -18,7 +18,7 @@ export function DisplayLightCard({
     <Card className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2.5">
         {on ? (
-          <Lightbulb size={16} className="text-accent" />
+          <Lightbulb size={16} className="text-white" />
         ) : (
           <LightbulbOff size={16} className="text-text-muted" />
         )}

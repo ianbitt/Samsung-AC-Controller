@@ -18,12 +18,12 @@ export function TelemetryRow({
   return (
     <div className="grid grid-cols-3 gap-2">
       <Card className="flex flex-col items-center gap-1 p-3">
-        <Droplets size={15} className="text-accent" />
+        <Droplets size={15} className="text-white" />
         <span className="text-sm font-semibold text-text">{humidity}%</span>
         <span className="text-[10px] text-text-faint">Humidity</span>
       </Card>
       <Card className="flex flex-col items-center gap-1 p-3">
-        <Zap size={15} className="text-accent" />
+        <Zap size={15} className="text-white" />
         <span className="text-sm font-semibold text-text">{powerWatts}W</span>
         <span className="text-[10px] text-text-faint">Power</span>
       </Card>
@@ -33,7 +33,7 @@ export function TelemetryRow({
           filterWarning && 'border-warning/40 bg-warning-soft'
         )}
       >
-        <Filter size={15} className={cn(filterWarning ? 'text-warning' : 'text-accent')} />
+        <Filter size={15} className={cn(filterWarning ? 'text-warning' : 'text-white')} />
         <span
           className={cn(
             'truncate text-sm font-semibold capitalize',
